@@ -1,0 +1,61 @@
+[project]
+name = "busesyparadas"
+version = "0.1.0"
+description = "App web para consultar los próximos buses de una parada en A Coruña"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn>=0.30",
+  "httpx>=0.27",
+  "pydantic>=2.6",
+  "pydantic-settings>=2.2",
+  "jinja2>=3.1"
+]
+
+[project.urls]
+repository = "https://example.com/busesyparadas"
+
+[dependency-groups]
+dev = [
+  "ruff>=0.5",
+  "mypy>=1.10",
+  "pytest>=8.0",
+  "pytest-cov>=5.0",
+  "httpx>=0.27",
+  "anyio>=4.0",
+  "pillow>=12.0.0",
+]
+
+[tool.uv]
+default-groups = ["dev"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/app/api/v1/*.py" = ["B008"]
+"src/app/main.py" = ["B008"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+
+[tool.mypy]
+python_version = "3.12"
+strict = false
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_unused_configs = true
+packages = ["app"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+addopts = "--maxfail=1 --disable-warnings"
+anyio_backend = "asyncio"

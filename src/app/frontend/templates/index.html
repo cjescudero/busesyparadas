@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Llegadas de buses</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#2f7afe" />
+    <link rel="icon" type="image/png" sizes="64x64" href="{{ url_for('static', path='/favicon-64.png') }}" />
+    <link rel="apple-touch-icon" href="{{ url_for('static', path='/icons/icon-512.png') }}" />
+  </head>
+  <body data-primary-stop-id="{{ primary_stop_id }}" data-primary-stop-name="{{ default_stop.name if default_stop else 'Parada ' ~ primary_stop_id }}">
+    <main>
+      <header class="hero">
+        <h1>Llegadas de buses</h1>
+      </header>
+
+      <section class="card search-card">
+        <div class="section-heading">
+          <p class="eyebrow">Busca tu parada</p>
+        </div>
+        <label for="stop-search">Escribe para filtrar</label>
+        <div class="input-wrapper">
+          <input
+            id="stop-search"
+            type="search"
+            inputmode="text"
+            placeholder="Ejemplo: Av. de Oza, Plaza de Lugo..."
+            autocomplete="off"
+          />
+          <button class="home-btn" id="home-button" type="button" aria-label="Usar parada principal">🏠</button>
+        </div>
+        <ul class="autocomplete" id="stop-results" role="listbox" aria-label="Resultados de paradas"></ul>
+        <p class="current-stop" id="current-stop-label"></p>
+      </section>
+
+      <section class="card next-card">
+        <div class="section-heading">
+          <p class="eyebrow">Buses más próximos</p>
+        </div>
+        <div class="next-arrivals" id="next-arrivals"></div>
+      </section>
+
+      <section class="card arrivals-card">
+        <div class="section-heading">
+          <p class="eyebrow">Resto de buses</p>
+        </div>
+        <h2 id="stop-name">&nbsp;</h2>
+        <p class="muted" id="stop-helper">Parada principal</p>
+        <div class="arrivals" id="arrivals"></div>
+        <p class="status-text" id="status"></p>
+      </section>
+    </main>
+    <script src="{{ url_for('static', path='/app.js') }}" defer></script>
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("/sw.js").catch((err) =>
+            console.error("SW registration failed", err)
+          );
+        });
+      }
+    </script>
+  </body>
+</html>

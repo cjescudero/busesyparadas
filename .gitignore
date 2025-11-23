@@ -1,0 +1,7 @@
+__pycache__/
+.python-version
+.venv/
+.env
+.eggs/
+*.pyc
+.DS_Store
