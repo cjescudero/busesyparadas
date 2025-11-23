@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     app_config_path: str = Field(
         default="config/app_config.json", validation_alias="APP_CONFIG_PATH"
     )
+    root_path: str = Field(default="", validation_alias="ROOT_PATH")
 
     @property
     def allowed_origins(self) -> list[str]:

@@ -1,19 +1,24 @@
-const CACHE_NAME = 'buses-pwa-v1';
-const OFFLINE_URLS = [
-  '/',
-  '/static/styles.css',
-  '/static/app.js',
-  '/static/manifest.webmanifest'
+const CACHE_NAME = "buses-pwa-v2";
+const RELATIVE_ASSETS = [
+  "",
+  "static/styles.css",
+  "static/app.js",
+  "manifest.webmanifest",
 ];
 
-self.addEventListener('install', (event) => {
+const offlineUrls = RELATIVE_ASSETS.map((path) => {
+  const normalized = path.startsWith("/") ? path.slice(1) : path;
+  return new URL(normalized, self.registration.scope).toString();
+});
+
+self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(OFFLINE_URLS))
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(offlineUrls))
   );
   self.skipWaiting();
 });
 
-self.addEventListener('activate', (event) => {
+self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(
@@ -26,8 +31,8 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET') {
+self.addEventListener("fetch", (event) => {
+  if (event.request.method !== "GET") {
     return;
   }
   event.respondWith(
