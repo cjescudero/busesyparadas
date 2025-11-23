@@ -26,7 +26,7 @@ try:
 except metadata.PackageNotFoundError:
     app_version = "0.1.0"
 
-app = FastAPI(title=settings.api_title, version=app_version)
+app = FastAPI(title=settings.api_title, version=app_version, root_path=settings.root_path)
 
 app.add_middleware(RequestIdMiddleware)
 app.add_middleware(
@@ -59,10 +59,12 @@ async def index(
 ) -> HTMLResponse:
     primary_stop_id = app_config.primary_stop_id
     default_stop = await service.get_stop(primary_stop_id)
+    base_path = request.scope.get("root_path", "") or ""
     context = {
         "request": request,
         "default_stop": default_stop,
         "primary_stop_id": primary_stop_id,
+        "base_path": base_path,
     }
     return templates.TemplateResponse("index.html", context)
 

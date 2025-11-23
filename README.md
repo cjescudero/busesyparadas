@@ -38,6 +38,7 @@ Copiar `.env.example` a `.env` y personalizar si hace falta:
 | `HTTP_TIMEOUT_SECONDS` | Timeout de las peticiones externas. |
 | `CORS_ORIGINS` | Lista separada por comas o `*`. |
 | `APP_CONFIG_PATH` | Ruta al `app_config.json` descrito arriba. |
+| `ROOT_PATH` | Prefijo público cuando se despliega tras un subpath (ej. `/busesyparadas`). |
 
 ## Desarrollo
 ### Servidor
@@ -83,3 +84,25 @@ docker run -p 8000:8000 buscornamayo
 - Manifesto en `/manifest.webmanifest` con iconos (`static/icons/*`).
 - Service Worker (`/sw.js`) para ofrecer modo standalone.
 - En móviles sólo hay que “Añadir a pantalla de inicio” para tener la app como PWA.
+
+## Despliegue sugerido (systemd + Nginx)
+1. Instalar dependencias en una venv local:
+   ```bash
+   cd /home/escudero/busesyparadas
+   uv sync --frozen
+   cp .env.example .env  # y personaliza valores
+   ```
+   Si se sirve detrás de un subpath (por ejemplo `https://escudero.gtec.udc.es/busesyparadas`), ajusta `ROOT_PATH=/busesyparadas`.
+2. Copiar el unit file `deploy/systemd/busesyparadas.service` a `/etc/systemd/system/` y recargar systemd:
+   ```bash
+   sudo cp deploy/systemd/busesyparadas.service /etc/systemd/system/
+   sudo systemctl daemon-reload
+   sudo systemctl enable --now busesyparadas.service
+   ```
+3. Para el frontal, copiar el snippet `deploy/nginx/busesyparadas.conf` a `/etc/nginx/snippets/` e incluirlo dentro del `server` correspondiente (normalmente el que ya sirve `escudero.gtec.udc.es`). Ejemplo:
+   ```bash
+   sudo cp deploy/nginx/busesyparadas.conf /etc/nginx/snippets/busesyparadas.conf
+   sudoedit /etc/nginx/sites-available/escudero.gtec.udc.es  # añadir: include /etc/nginx/snippets/busesyparadas.conf;
+   sudo nginx -t && sudo systemctl reload nginx
+   ```
+   El backend queda escuchando en `127.0.0.1:3003` y Nginx sirve `/static`, `/manifest.webmanifest` y `/sw.js` directamente desde `src/app/frontend/static`, haciendo proxy del resto a Uvicorn.

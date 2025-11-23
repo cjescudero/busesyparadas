@@ -1,0 +1,17 @@
+[Unit]
+Description=BusCorunaMayores FastAPI backend
+After=network.target
+
+[Service]
+User=escudero
+Group=escudero
+WorkingDirectory=/home/escudero/busesyparadas
+EnvironmentFile=/home/escudero/busesyparadas/.env
+ExecStart=/home/escudero/busesyparadas/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 3003 --proxy-headers --forwarded-allow-ips="*"
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

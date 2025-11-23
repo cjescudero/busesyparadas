@@ -1,6 +1,15 @@
 const body = document.body;
 const primaryStopId = Number(body.dataset.primaryStopId);
 const primaryStopName = body.dataset.primaryStopName || `Parada ${primaryStopId}`;
+const basePath = window.__BASE_PATH ?? body.dataset.basePath ?? "";
+delete window.__BASE_PATH;
+
+const buildUrl = (path) => {
+  if (!path.startsWith("/")) {
+    path = `/${path}`;
+  }
+  return basePath ? `${basePath}${path}` : path;
+};
 
 const searchInput = document.getElementById("stop-search");
 const resultsList = document.getElementById("stop-results");
@@ -39,6 +48,15 @@ async function bootstrapStops() {
   } catch (error) {
     console.error("No se pudo cargar el listado de paradas", error);
   }
+}
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    const swUrl = buildUrl("/sw.js");
+    navigator.serviceWorker
+      .register(swUrl)
+      .catch((err) => console.error("SW registration failed", err));
+  });
 }
 
 function handleSearchInput(event) {
@@ -151,7 +169,7 @@ async function selectStop(stop) {
 }
 
 async function fetchJSON(url) {
-  const response = await fetch(url);
+  const response = await fetch(buildUrl(url));
   if (!response.ok) {
     throw new Error(`Error ${response.status}`);
   }
@@ -289,9 +307,9 @@ function formatEtaLabel(value) {
     return "Llegando";
   }
   if (value === 1) {
-    return "En 1 minuto";
+    return "1 min";
   }
-  return `En ${value} minutos`;
+  return `${value} min`;
 }
 
 function formatAbsoluteTime(value) {
@@ -310,7 +328,7 @@ function updateCurrentStopLabel(stop) {
   if (!currentStopLabel || !stop) {
     return;
   }
-  currentStopLabel.innerHTML = `<span>Parada seleccionada:</span> <strong>${stop.id} - ${stop.name}</strong>`;
+  currentStopLabel.textContent = `${stop.id} - ${stop.name}`;
 }
 
 selectStop({ id: primaryStopId, name: primaryStopName });
