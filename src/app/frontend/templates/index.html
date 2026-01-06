@@ -23,20 +23,26 @@
       <section class="card search-card">
         <div class="section-heading">
           <p class="eyebrow">Busca tu parada</p>
+          <button class="home-link" id="home-button" type="button" aria-label="Ir a mi parada de casa">
+            <span aria-hidden="true">🏠</span> Parada de casa
+          </button>
         </div>
         <div class="input-wrapper">
           <input
             id="stop-search"
             type="search"
             inputmode="text"
-            placeholder="Ejemplo: Av. de Oza, Plaza de Lugo..."
+            placeholder="Escribe aquí el número o nombre de la parada a buscar"
             autocomplete="off"
-            aria-label="Busca tu parada"
+            role="combobox"
+            aria-autocomplete="list"
+            aria-controls="stop-results"
+            aria-expanded="false"
           />
-          <button class="home-btn" id="home-button" type="button" aria-label="Usar parada principal">🏠</button>
         </div>
         <ul class="autocomplete" id="stop-results" role="listbox" aria-label="Resultados de paradas"></ul>
-        <p class="current-stop" id="current-stop-label"></p>
+        <!-- Accesibilidad: aria-live para que el lector anuncie cambios de parada seleccionada. -->
+        <p class="current-stop" id="current-stop-label" aria-live="polite"></p>
       </section>
 
       <section class="card next-card">
@@ -44,18 +50,18 @@
           <p class="eyebrow">Buses más próximos</p>
         </div>
         <div class="next-arrivals" id="next-arrivals"></div>
+        <!-- Accesibilidad: aria-live para estados y actualizaciones. -->
+        <p class="status-text" id="status" aria-live="polite"></p>
       </section>
 
       <section class="card arrivals-card">
         <div class="section-heading">
           <p class="eyebrow">Resto de buses</p>
         </div>
-        <h2 id="stop-name">&nbsp;</h2>
-        <p class="muted" id="stop-helper">Parada principal</p>
         <div class="arrivals" id="arrivals"></div>
-        <p class="status-text" id="status"></p>
       </section>
     </main>
+
     <script>
       window.__BASE_PATH = "{{ base_path }}";
     </script>

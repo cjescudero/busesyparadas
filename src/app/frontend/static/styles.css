@@ -7,6 +7,10 @@
   --accent-dark: #1f5cd8;
   --muted: #5b6474;
   --muted-dark: #1e293b;
+  --border: rgba(15, 23, 42, 0.18);
+  --focus-ring: rgba(47, 122, 254, 0.35);
+  --tooltip-bg: rgba(15, 23, 42, 0.96);
+  --tooltip-fg: #ffffff;
   font-size: 18px;
   font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
 }
@@ -74,12 +78,6 @@ main {
   font-size: 0.9rem;
 }
 
-label {
-  font-weight: 600;
-  display: block;
-  margin-bottom: 0.35rem;
-}
-
 .input-wrapper {
   position: relative;
   margin-bottom: 1rem;
@@ -87,17 +85,50 @@ label {
 
 input[type="search"] {
   width: 100%;
-  padding: 0.95rem 3.25rem 0.95rem 1.1rem;
+  padding: 0.95rem 1.1rem;
   border-radius: 20px;
-  border: 2px solid rgba(15, 23, 42, 0.12);
+  border: 2px solid var(--border);
+  background: #ffffff;
+  color: var(--fg);
   font-size: 1rem;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  min-height: 44px; /* Accesibilidad: tamaño mínimo táctil/visual. */
 }
 
 input[type="search"]:focus {
   border-color: var(--accent);
   outline: none;
-  box-shadow: 0 0 0 3px rgba(47, 122, 254, 0.15);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+input[type="search"]::placeholder {
+  color: var(--muted);
+  opacity: 1; /* Accesibilidad: evita placeholders demasiado tenues. */
+}
+
+.home-link {
+  background: rgba(47, 122, 254, 0.1);
+  color: var(--accent-dark);
+  border: 1px solid rgba(47, 122, 254, 0.2);
+  padding: 0.4rem 0.8rem;
+  border-radius: 999px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.home-link:hover {
+  background: rgba(47, 122, 254, 0.2);
+  transform: translateY(-1px);
+}
+
+.home-link span {
+  font-size: 1.15rem;
 }
 
 .autocomplete {
@@ -110,27 +141,6 @@ input[type="search"]:focus {
   overflow-y: auto;
   background: #fff;
   display: none;
-}
-
-.home-btn {
-  position: absolute;
-  right: 0.35rem;
-  top: 50%;
-  transform: translateY(-50%);
-  border: none;
-  background: linear-gradient(120deg, var(--accent), var(--accent-dark));
-  color: #fff;
-  width: 2.4rem;
-  height: 2.4rem;
-  border-radius: 999px;
-  font-size: 1.2rem;
-  cursor: pointer;
-  box-shadow: 0 10px 20px rgba(47, 122, 254, 0.2);
-}
-
-.home-btn:focus-visible {
-  outline: 3px solid rgba(47, 122, 254, 0.4);
-  outline-offset: 2px;
 }
 
 .autocomplete li {
@@ -191,6 +201,7 @@ button.primary {
   background: linear-gradient(120deg, var(--accent), var(--accent-dark));
   cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
+  min-height: 44px; /* Accesibilidad: tamaño mínimo táctil/visual. */
 }
 
 button.primary:hover {
@@ -203,9 +214,23 @@ button.ghost {
   background: transparent;
   color: var(--muted-dark);
   border-radius: 999px;
-  padding: 0.45rem 1.15rem;
+  padding: 0.65rem 1.15rem;
   font-weight: 600;
   cursor: pointer;
+  min-height: 44px; /* Accesibilidad: tamaño mínimo táctil/visual. */
+  touch-action: manipulation;
+}
+
+button.ghost:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* Accesibilidad: estado deshabilitado claramente visible. */
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 .next-arrivals {

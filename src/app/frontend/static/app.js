@@ -15,6 +15,7 @@ const searchInput = document.getElementById("stop-search");
 const resultsList = document.getElementById("stop-results");
 const currentStopLabel = document.getElementById("current-stop-label");
 const homeButton = document.getElementById("home-button");
+
 const stopNameEl = document.getElementById("stop-name");
 const stopHelperEl = document.getElementById("stop-helper");
 const arrivalsEl = document.getElementById("arrivals");
@@ -22,18 +23,32 @@ const statusEl = document.getElementById("status");
 const nextArrivalsEl = document.getElementById("next-arrivals");
 
 let currentStopId = primaryStopId;
-let refreshTimer;
+let apiRefreshTimer;
+let uiRefreshTimer;
 let allStops = [];
 let filteredStops = [];
 let nextShownMap = new Map();
+let lastArrivalsSnapshot = null;
 
 bootstrapStops();
 
-searchInput?.addEventListener("input", handleSearchInput);
-searchInput?.addEventListener("keydown", handleSearchKeydown);
-resultsList?.addEventListener("click", handleResultClick);
+// Accesibilidad: anuncia actualizaciones de llegadas en lectores de pantalla sin interrumpir al usuario.
+nextArrivalsEl?.setAttribute("aria-live", "polite");
+arrivalsEl?.setAttribute("aria-live", "polite");
+
+setupStopSearch({
+  input: searchInput,
+  results: resultsList,
+  prefix: "main",
+  maxResults: 6,
+  onSelect: (stop) => selectStop(stop),
+});
+
 homeButton?.addEventListener("click", () => {
-  const stop = findStopById(primaryStopId) || { id: primaryStopId, name: primaryStopName };
+  const stop = findStopById(primaryStopId) || {
+    id: primaryStopId,
+    name: primaryStopName,
+  };
   selectStop(stop);
 });
 
@@ -59,99 +74,122 @@ if ("serviceWorker" in navigator) {
   });
 }
 
-function handleSearchInput(event) {
-  const value = event.target.value.trim().toLowerCase();
-  if (!allStops.length) {
+function setupStopSearch({ input, results, prefix, maxResults, onSelect }) {
+  if (!input || !results) {
     return;
   }
-  filteredStops = value
-    ? allStops.filter(
-        (stop) =>
-          stop.name.toLowerCase().includes(value) ||
-          String(stop.id).includes(value)
-      )
-    : allStops;
-  renderResults(filteredStops.slice(0, 4));
-}
 
-function handleSearchKeydown(event) {
-  if (!resultsList || !resultsList.children.length) {
-    return;
-  }
-  const options = Array.from(resultsList.children);
-  const currentIndex = options.findIndex((item) =>
-    item.getAttribute("aria-selected") === "true"
-  );
-  if (event.key === "ArrowDown") {
-    event.preventDefault();
-    const nextIndex = currentIndex < options.length - 1 ? currentIndex + 1 : 0;
-    setActiveOption(options, nextIndex);
-  }
-  if (event.key === "ArrowUp") {
-    event.preventDefault();
-    const prevIndex = currentIndex > 0 ? currentIndex - 1 : options.length - 1;
-    setActiveOption(options, prevIndex);
-  }
-  if (event.key === "Enter" && currentIndex >= 0) {
-    event.preventDefault();
-    const stopId = Number(options[currentIndex].dataset.stopId);
+  input.addEventListener("input", (event) => {
+    const value = event.target.value.trim().toLowerCase();
+    if (!allStops.length) {
+      return;
+    }
+    const matches = value
+      ? allStops.filter(
+          (stop) => stop.name.toLowerCase().includes(value) || String(stop.id).includes(value)
+        )
+      : allStops;
+    renderResults({ input, results, prefix, stops: matches.slice(0, maxResults) });
+  });
+
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      // Accesibilidad: permite cerrar resultados fácilmente con teclado.
+      clearSearchResults({ input, results });
+      return;
+    }
+
+    if (!results.children.length) {
+      return;
+    }
+
+    const options = Array.from(results.children).filter((li) => li.getAttribute("aria-disabled") !== "true");
+    if (!options.length) {
+      return;
+    }
+    const currentIndex = options.findIndex((item) => item.getAttribute("aria-selected") === "true");
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      const nextIndex = currentIndex < options.length - 1 ? currentIndex + 1 : 0;
+      setActiveOption({ input, options, index: nextIndex });
+    }
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      const prevIndex = currentIndex > 0 ? currentIndex - 1 : options.length - 1;
+      setActiveOption({ input, options, index: prevIndex });
+    }
+
+    if (event.key === "Enter" && currentIndex >= 0) {
+      event.preventDefault();
+      const stopId = Number(options[currentIndex].dataset.stopId);
+      const stop = findStopById(stopId);
+      if (stop) {
+        onSelect(stop);
+        clearSearchResults({ input, results });
+      }
+    }
+  });
+
+  results.addEventListener("click", (event) => {
+    const li = event.target.closest("li[data-stop-id]");
+    if (!li) {
+      return;
+    }
+    const stopId = Number(li.dataset.stopId);
     const stop = findStopById(stopId);
     if (stop) {
-      selectStop(stop);
-      clearSearchResults();
+      onSelect(stop);
+      clearSearchResults({ input, results });
     }
-  }
+  });
 }
 
-function handleResultClick(event) {
-  const li = event.target.closest("li[data-stop-id]");
-  if (!li) {
-    return;
-  }
-  const stopId = Number(li.dataset.stopId);
-  const stop = findStopById(stopId);
-  if (stop) {
-    selectStop(stop);
-    resultsList.innerHTML = "";
-  }
-}
+function renderResults({ input, results, prefix, stops }) {
+  results.innerHTML = "";
 
-function renderResults(stops) {
-  if (!resultsList) {
-    return;
-  }
-  resultsList.innerHTML = "";
   if (!stops.length) {
     const li = document.createElement("li");
     li.textContent = "Sin resultados";
     li.setAttribute("aria-disabled", "true");
-    resultsList.appendChild(li);
-    resultsList.style.display = "block";
+    results.appendChild(li);
+    showResults({ input, results });
     return;
   }
+
   stops.forEach((stop, index) => {
     const li = document.createElement("li");
     li.dataset.stopId = stop.id;
     li.role = "option";
-    if (index === 0) {
-      li.setAttribute("aria-selected", "true");
-    }
+    li.id = `${prefix}-stop-option-${stop.id}`;
+    li.setAttribute("aria-selected", index === 0 ? "true" : "false");
     li.innerHTML = `<strong>${stop.id} - ${stop.name}</strong>`;
-    resultsList.appendChild(li);
+    results.appendChild(li);
   });
-  resultsList.style.display = "block";
+
+  showResults({ input, results });
+
+  // Accesibilidad: informa del elemento “activo” a lectores de pantalla.
+  const first = results.querySelector('li[aria-selected="true"]');
+  if (first) {
+    input.setAttribute("aria-activedescendant", first.id);
+  }
 }
 
-function setActiveOption(options, index) {
+function setActiveOption({ input, options, index }) {
   options.forEach((item, idx) => {
     item.setAttribute("aria-selected", idx === index ? "true" : "false");
     if (idx === index) {
       item.scrollIntoView({ block: "nearest" });
+      input.setAttribute("aria-activedescendant", item.id);
     }
   });
-  if (resultsList) {
-    resultsList.style.display = "block";
-  }
+}
+
+function showResults({ input, results }) {
+  results.style.display = "block";
+  input.setAttribute("aria-expanded", "true");
 }
 
 function findStopById(stopId) {
@@ -163,7 +201,7 @@ async function selectStop(stop) {
   if (searchInput) {
     searchInput.value = "";
   }
-  clearSearchResults();
+  clearSearchResults({ input: searchInput, results: resultsList });
   updateCurrentStopLabel(stop);
   await loadArrivals(currentStopId);
 }
@@ -179,8 +217,8 @@ async function fetchJSON(url) {
 async function loadArrivals(stopId, options = {}) {
   const { manual = false } = options;
   setStatus(manual ? "Actualizando bajo pedido..." : "Buscando datos frescos...");
-  if (refreshTimer) {
-    clearTimeout(refreshTimer);
+  if (apiRefreshTimer) {
+    clearTimeout(apiRefreshTimer);
   }
 
   try {
@@ -188,24 +226,81 @@ async function loadArrivals(stopId, options = {}) {
       fetchJSON(`/api/stops/${stopId}`),
       fetchJSON(`/api/stops/${stopId}/arrivals`),
     ]);
-    stopNameEl.textContent = stop.name;
+    if (stopNameEl) stopNameEl.textContent = stop.name;
+    lastArrivalsSnapshot = { stop, arrivals, updatedAt: new Date() };
     const lineCount = Array.isArray(stop.lines) ? stop.lines.length : 0;
-    stopHelperEl.textContent =
-      lineCount > 0
-        ? `Mostrando ${lineCount} línea${lineCount === 1 ? "" : "s"} configuradas`
-        : "Sin líneas configuradas para esta parada";
-    renderNextArrivals(arrivals);
-    renderArrivals(arrivals);
+    // Accesibilidad/usabilidad: texto explicativo más claro para usuarios no expertos.
+    const stopKind =
+      stopId === primaryStopId
+        ? "Parada habitual"
+        : "Parada seleccionada";
+    if (stopHelperEl) {
+      stopHelperEl.textContent =
+        lineCount > 0
+          ? `${stopKind}. Mostrando ${lineCount} línea${lineCount === 1 ? "" : "s"} configuradas`
+          : `${stopKind}. Sin líneas configuradas para esta parada`;
+    }
+    // Actualizar UI inmediatamente con los datos frescos
+    updateUIFromSnapshot();
     const now = new Date();
-    setStatus(`Actualizado a las ${now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`);
+    const timeStr = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    setStatus(`Datos reales: ${timeStr} | Refresco: ${timeStr}`);
   } catch (error) {
     console.error(error);
     nextArrivalsEl.innerHTML = "<div class=\"empty-state\">No se pudo conectar con el servicio.</div>";
     arrivalsEl.innerHTML = "<div class=\"empty-state\">No hay datos disponibles en este momento.</div>";
     setStatus("No se pudo actualizar. Intenta de nuevo en unos segundos.");
   } finally {
-    refreshTimer = setTimeout(() => loadArrivals(currentStopId), 45000);
+    // Consultar API cada 3 minutos (180000 ms) para evitar saturación
+    apiRefreshTimer = setTimeout(() => loadArrivals(currentStopId), 180000);
+    // Iniciar/restablecer el timer de actualización visual cada minuto
+    startUIRefreshTimer();
   }
+}
+
+function startUIRefreshTimer() {
+  if (uiRefreshTimer) {
+    clearTimeout(uiRefreshTimer);
+  }
+  // Actualizar UI cada minuto (60000 ms) con cálculos basados en el último snapshot
+  uiRefreshTimer = setTimeout(() => {
+    if (lastArrivalsSnapshot) {
+      updateUIFromSnapshot();
+    }
+    startUIRefreshTimer();
+  }, 60000);
+}
+
+function updateUIFromSnapshot() {
+  if (!lastArrivalsSnapshot) {
+    return;
+  }
+
+  const now = new Date();
+  const elapsedMinutes = Math.floor((now - lastArrivalsSnapshot.updatedAt) / 60000);
+  
+  // Calcular tiempos ajustados restando los minutos transcurridos
+  const adjustedArrivals = {
+    lines: lastArrivalsSnapshot.arrivals.lines.map((line) => ({
+      ...line,
+      buses: line.buses.map((bus) => {
+        if (typeof bus.eta_minutes === "number") {
+          return {
+            ...bus,
+            eta_minutes: Math.max(0, bus.eta_minutes - elapsedMinutes)
+          };
+        }
+        return bus;
+      })
+    }))
+  };
+
+  renderNextArrivals(adjustedArrivals);
+  renderArrivals(adjustedArrivals);
+  
+  // Actualizar estado mostrando cuándo se actualizó el API
+  const apiUpdateTime = lastArrivalsSnapshot.updatedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  setStatus(`Datos del API: ${apiUpdateTime} | Actualizado: ${now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`);
 }
 
 function renderNextArrivals(arrivals) {
@@ -328,14 +423,21 @@ function updateCurrentStopLabel(stop) {
   if (!currentStopLabel || !stop) {
     return;
   }
-  currentStopLabel.textContent = `${stop.id} - ${stop.name}`;
+  // Accesibilidad/usabilidad: añade un prefijo claro (“Parada seleccionada”) y conserva buen contraste.
+  currentStopLabel.innerHTML = `<span>Parada seleccionada:</span> <strong>${stop.id} - ${stop.name}</strong>`;
 }
 
 selectStop({ id: primaryStopId, name: primaryStopName });
-function clearSearchResults() {
-  if (!resultsList) {
+
+function clearSearchResults({ input, results }) {
+  if (!results) {
     return;
   }
-  resultsList.innerHTML = "";
-  resultsList.style.display = "none";
+  results.innerHTML = "";
+  results.style.display = "none";
+  if (input) {
+    input.setAttribute("aria-expanded", "false");
+    input.removeAttribute("aria-activedescendant");
+  }
 }
+
