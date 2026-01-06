@@ -233,7 +233,7 @@ async function loadArrivals(stopId, options = {}) {
     const stopKind =
       stopId === primaryStopId
         ? "Parada habitual"
-        : "Parada seleccionada";
+        : "Seleccionada";
     if (stopHelperEl) {
       stopHelperEl.textContent =
         lineCount > 0
@@ -423,8 +423,8 @@ function updateCurrentStopLabel(stop) {
   if (!currentStopLabel || !stop) {
     return;
   }
-  // Accesibilidad/usabilidad: añade un prefijo claro (“Parada seleccionada”) y conserva buen contraste.
-  currentStopLabel.innerHTML = `<span>Parada seleccionada:</span> <strong>${stop.id} - ${stop.name}</strong>`;
+  // Accesibilidad/usabilidad: añade un prefijo claro ("Seleccionada") y conserva buen contraste.
+  currentStopLabel.innerHTML = `<span>Seleccionada:</span> <strong>${stop.id} - ${stop.name}</strong>`;
 }
 
 selectStop({ id: primaryStopId, name: primaryStopName });
