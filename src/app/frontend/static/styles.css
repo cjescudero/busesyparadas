@@ -64,9 +64,10 @@ main {
 .eyebrow {
   text-transform: uppercase;
   letter-spacing: 0.2rem;
-  font-size: 0.75rem;
+  font-size: 0.85rem;
   color: var(--accent-dark);
   margin: 0 0 0.35rem;
+  font-weight: 700;
 }
 
 .favorite-pill {
@@ -389,5 +390,9 @@ button:disabled {
 
   .next-card-item {
     padding: 0.9rem;
+  }
+
+  input[type="search"]::placeholder {
+    font-size: 0.9rem;
   }
 }
