@@ -235,8 +235,8 @@ async function loadArrivals(stopId, options = {}) {
     if (arrivals.lines && arrivals.lines.length > 0) {
       const firstLine = arrivals.lines[0];
       directionHtml = firstLine.is_ida === true 
-        ? "Con líneas que se <strong>alejan</strong> de casa" 
-        : "Con líneas que <strong>vuelven</strong> a casa";
+        ? "Se <strong>aleja</strong> de casa" 
+        : "De <strong>vuelta</strong> a casa";
     }
     
     // Actualizar el label de la parada seleccionada (sin el sentido)
