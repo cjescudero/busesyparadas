@@ -204,6 +204,10 @@ input[type="search"]::placeholder {
   display: none;
 }
 
+.stop-direction-text .direction-word {
+  font-size: 1.05rem;
+}
+
 button.primary {
   width: 100%;
   padding: 1rem;
