@@ -50,8 +50,6 @@
           <p class="eyebrow">Buses más próximos</p>
         </div>
         <div class="next-arrivals" id="next-arrivals"></div>
-        <!-- Accesibilidad: aria-live para estados y actualizaciones. -->
-        <p class="status-text" id="status" aria-live="polite"></p>
       </section>
 
       <section class="card arrivals-card">
@@ -61,6 +59,11 @@
         <div class="arrivals" id="arrivals"></div>
       </section>
     </main>
+
+    <footer>
+      <!-- Accesibilidad: aria-live para estados y actualizaciones. -->
+      <p class="status-text" id="status" aria-live="polite"></p>
+    </footer>
 
     <script>
       window.__BASE_PATH = "{{ base_path }}";
