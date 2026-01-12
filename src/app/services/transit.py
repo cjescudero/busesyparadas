@@ -27,6 +27,8 @@ class TransitService:
         self._cache_expires_at: float = 0.0
         self._lock = asyncio.Lock()
         self._lines_info: dict[int, dict[str, str | None]] = {}
+        self._lines_routes: dict[int, list[dict]] = {}  # Rutas de cada línea
+        self._lines_origin: dict[int, int | None] = {}  # ID de la primera parada (origen) de cada línea
         self._interest_line_ids: set[int] = set()
         self._interest_line_names = {
             line.strip().lower() for line in self.app_config.interest_lines
@@ -61,6 +63,8 @@ class TransitService:
                 logger.warning("Falling back to placeholder stop catalog")
                 self._stops_cache = [self._placeholder_stop()]
                 self._lines_info = {}
+                self._lines_routes = {}
+                self._lines_origin = {}
                 self._interest_line_ids = set()
                 self._set_cache_expiry()
                 return self._stops_cache
@@ -114,6 +118,22 @@ class TransitService:
                 color = color if color.startswith("#") else f"#{color.zfill(6)}"
             normalized = name.lower()
             info[line_id] = {"name": name, "name_lower": normalized, "color": color}
+            
+            # Guardar rutas de la línea
+            routes = item.get("rutas", [])
+            self._lines_routes[line_id] = routes
+            
+            # Determinar origen: primera parada de la primera ruta
+            origin_stop_id = None
+            if routes and len(routes) > 0:
+                first_route = routes[0]
+                paradas = first_route.get("paradas", [])
+                if paradas and len(paradas) > 0:
+                    origin_stop_id = self._safe_int(paradas[0])
+            self._lines_origin[line_id] = origin_stop_id
+            if origin_stop_id:
+                logger.debug(f"Línea {line_id} ({name}): origen={origin_stop_id}, rutas={len(routes)}")
+            
             if (
                 normalized in self._interest_line_names
                 or str(line_id).lower() in self._interest_line_names
@@ -193,12 +213,21 @@ class TransitService:
             buses_data.sort(
                 key=lambda item: item.eta_minutes if item.eta_minutes is not None else 10**9
             )
+            
+            # Determinar si la parada es de ida o vuelta para esta línea
+            is_ida = self._is_stop_direction_ida(stop_id, line_id)
+            logger.debug(
+                f"Parada {stop_id}, Línea {line_id}: is_ida={is_ida}, "
+                f"origen={self._lines_origin.get(line_id)}"
+            )
+            
             lines.append(
                 LineArrivals(
                     line_id=line_id,
                     line_name=line_meta["name"] if line_meta else None,
                     color_hex=line_meta["color"] if line_meta else None,
                     buses=buses_data,
+                    is_ida=is_ida,
                 )
             )
 
@@ -227,6 +256,47 @@ class TransitService:
             return stop
         stop.lines = [line_id for line_id in stop.lines if line_id in self._interest_line_ids]
         return stop
+
+    def _is_stop_direction_ida(self, stop_id: int, line_id: int) -> bool:
+        """
+        Determina si una parada es de ida (se aleja de casa) para una línea.
+        Una parada es de ida si está en una ruta que empieza con el origen de la línea.
+        """
+        if line_id not in self._lines_origin:
+            return False
+        
+        origin_stop_id = self._lines_origin[line_id]
+        if origin_stop_id is None:
+            return False
+        
+        routes = self._lines_routes.get(line_id, [])
+        if not routes:
+            return False
+        
+        # Normalizar stop_id a int para comparación
+        stop_id_int = int(stop_id)
+        origin_int = int(origin_stop_id)
+        
+        for route in routes:
+            paradas = route.get("paradas", [])
+            if not paradas:
+                continue
+            
+            # Convertir primera parada a int
+            first_stop = self._safe_int(paradas[0])
+            if first_stop is None:
+                continue
+            
+            # Si la ruta empieza con el origen y contiene la parada, es ida
+            if first_stop == origin_int:
+                # Verificar si la parada está en la lista
+                # Convertir todas las paradas a int y verificar
+                for parada in paradas:
+                    parada_int = self._safe_int(parada)
+                    if parada_int is not None and parada_int == stop_id_int:
+                        return True
+        
+        return False
 
     @staticmethod
     def _safe_int(value: Any) -> int | None:

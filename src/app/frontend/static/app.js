@@ -17,7 +17,7 @@ const currentStopLabel = document.getElementById("current-stop-label");
 const homeButton = document.getElementById("home-button");
 
 const stopNameEl = document.getElementById("stop-name");
-const stopHelperEl = document.getElementById("stop-helper");
+const stopDirectionLabel = document.getElementById("stop-direction-label");
 const arrivalsEl = document.getElementById("arrivals");
 const statusEl = document.getElementById("status");
 const nextArrivalsEl = document.getElementById("next-arrivals");
@@ -229,16 +229,24 @@ async function loadArrivals(stopId, options = {}) {
     if (stopNameEl) stopNameEl.textContent = stop.name;
     lastArrivalsSnapshot = { stop, arrivals, updatedAt: new Date() };
     const lineCount = Array.isArray(stop.lines) ? stop.lines.length : 0;
-    // Accesibilidad/usabilidad: texto explicativo más claro para usuarios no expertos.
-    const stopKind =
-      stopId === primaryStopId
-        ? "Parada habitual"
-        : "Seleccionada";
-    if (stopHelperEl) {
-      stopHelperEl.textContent =
-        lineCount > 0
-          ? `${stopKind}. Mostrando ${lineCount} línea${lineCount === 1 ? "" : "s"} configuradas`
-          : `${stopKind}. Sin líneas configuradas para esta parada`;
+    
+    // Determinar sentido de la parada (todas las líneas tienen el mismo sentido)
+    let directionHtml = "";
+    if (arrivals.lines && arrivals.lines.length > 0) {
+      const firstLine = arrivals.lines[0];
+      directionHtml = firstLine.is_ida === true 
+        ? "Con líneas que se <strong>alejan</strong> de casa" 
+        : "Con líneas que <strong>vuelven</strong> a casa";
+    }
+    
+    // Actualizar el label de la parada seleccionada (sin el sentido)
+    if (currentStopLabel) {
+      currentStopLabel.innerHTML = `<span>Seleccionada:</span> <strong>${stop.id} - ${stop.name}</strong>`;
+    }
+    
+    // Actualizar el sentido fuera del resaltado
+    if (stopDirectionLabel) {
+      stopDirectionLabel.innerHTML = directionHtml || "";
     }
     // Actualizar UI inmediatamente con los datos frescos
     updateUIFromSnapshot();
@@ -283,6 +291,7 @@ function updateUIFromSnapshot() {
   const adjustedArrivals = {
     lines: lastArrivalsSnapshot.arrivals.lines.map((line) => ({
       ...line,
+      is_ida: line.is_ida, // Preservar el campo is_ida
       buses: line.buses.map((bus) => {
         if (typeof bus.eta_minutes === "number") {
           return {
@@ -424,7 +433,13 @@ function updateCurrentStopLabel(stop) {
     return;
   }
   // Accesibilidad/usabilidad: añade un prefijo claro ("Seleccionada") y conserva buen contraste.
+  // El sentido se añadirá cuando se carguen las llegadas
   currentStopLabel.innerHTML = `<span>Seleccionada:</span> <strong>${stop.id} - ${stop.name}</strong>`;
+  
+  // Limpiar el sentido cuando se cambia de parada
+  if (stopDirectionLabel) {
+    stopDirectionLabel.innerHTML = "";
+  }
 }
 
 selectStop({ id: primaryStopId, name: primaryStopName });

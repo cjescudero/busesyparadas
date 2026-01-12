@@ -191,6 +191,19 @@ input[type="search"]::placeholder {
   font-weight: 800;
 }
 
+.stop-direction-text {
+  margin-top: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--muted);
+  font-style: italic;
+  text-align: center;
+}
+
+.stop-direction-text:empty {
+  display: none;
+}
+
 button.primary {
   width: 100%;
   padding: 1rem;
@@ -311,6 +324,14 @@ button:disabled {
   font-size: 0.9rem;
   font-weight: 500;
   color: var(--muted);
+}
+
+.line-card .line-direction {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--muted);
+  margin-bottom: 0.5rem;
+  font-style: italic;
 }
 
 .bus-times {

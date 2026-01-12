@@ -27,6 +27,7 @@ class LineArrivals(BaseModel):
     line_name: str | None = None
     color_hex: str | None = None
     buses: list[ArrivalBus]
+    is_ida: bool = Field(default=False, description="True si la parada es de ida (se aleja de casa), False si es vuelta")
 
 
 class ArrivalsResponse(BaseModel):
