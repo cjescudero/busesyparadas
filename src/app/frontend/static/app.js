@@ -104,14 +104,25 @@ function setupStopSearch({ input, results, prefix, maxResults, onSelect }) {
     }
   });
 
+  // Función para normalizar texto eliminando tildes y acentos
+  function normalizeText(text) {
+    return text
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+  }
+
   input.addEventListener("input", (event) => {
-    const value = event.target.value.trim().toLowerCase();
+    const value = event.target.value.trim();
+    const normalizedValue = normalizeText(value);
     if (!allStops.length) {
       return;
     }
     const matches = value
       ? allStops.filter(
-          (stop) => stop.name.toLowerCase().includes(value) || String(stop.id).includes(value)
+          (stop) => 
+            normalizeText(stop.name).includes(normalizedValue) || 
+            String(stop.id).includes(value)
         )
       : allStops;
     renderResults({ input, results, prefix, stops: matches.slice(0, maxResults) });
@@ -257,11 +268,16 @@ async function loadArrivals(stopId, options = {}) {
     
     // Determinar sentido de la parada (todas las líneas tienen el mismo sentido)
     let directionHtml = "";
+    let directionClass = "";
     if (arrivals.lines && arrivals.lines.length > 0) {
       const firstLine = arrivals.lines[0];
-      directionHtml = firstLine.is_ida === true 
-        ? "Se <strong class=\"direction-word\">aleja</strong> de casa" 
-        : "De <strong class=\"direction-word\">vuelta</strong> a casa";
+      if (firstLine.is_ida === true) {
+        directionHtml = '<span class="direction-icon">→</span> Se <strong class="direction-word">aleja</strong> de casa';
+        directionClass = "direction-ida";
+      } else {
+        directionHtml = '<span class="direction-icon">←</span> De <strong class="direction-word">vuelta</strong> a casa';
+        directionClass = "direction-vuelta";
+      }
     }
     
     // Actualizar el label de la parada seleccionada (sin el sentido)
@@ -272,6 +288,12 @@ async function loadArrivals(stopId, options = {}) {
     // Actualizar el sentido fuera del resaltado
     if (stopDirectionLabel) {
       stopDirectionLabel.innerHTML = directionHtml || "";
+      // Añadir o quitar clase de color según el sentido
+      if (directionClass) {
+        stopDirectionLabel.className = `stop-direction-text ${directionClass}`;
+      } else {
+        stopDirectionLabel.className = "stop-direction-text";
+      }
     }
     // Actualizar UI inmediatamente con los datos frescos
     updateUIFromSnapshot();
@@ -464,6 +486,7 @@ function updateCurrentStopLabel(stop) {
   // Limpiar el sentido cuando se cambia de parada
   if (stopDirectionLabel) {
     stopDirectionLabel.innerHTML = "";
+    stopDirectionLabel.className = "stop-direction-text";
   }
 }
 

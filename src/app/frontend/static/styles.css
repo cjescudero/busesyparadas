@@ -198,10 +198,34 @@ input[type="search"]::placeholder {
   color: var(--muted);
   font-style: italic;
   text-align: center;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
 .stop-direction-text:empty {
   display: none;
+}
+
+.stop-direction-text.direction-ida {
+  background-color: #ffebee;
+  color: #c62828;
+  border: 2px solid #f44336;
+}
+
+.stop-direction-text.direction-vuelta {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  border: 2px solid #4caf50;
+}
+
+.stop-direction-text .direction-icon {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .stop-direction-text .direction-word {
