@@ -79,6 +79,31 @@ function setupStopSearch({ input, results, prefix, maxResults, onSelect }) {
     return;
   }
 
+  // Scroll automático al enfocar el campo de búsqueda en móvil
+  // Esto ayuda a que las personas mayores vean las opciones de búsqueda
+  input.addEventListener("focus", () => {
+    // Detectar si estamos en un dispositivo móvil
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+    
+    if (isMobile) {
+      // Delay para que el teclado virtual tenga tiempo de aparecer y ajustar el viewport
+      setTimeout(() => {
+        // Obtener la posición del campo de búsqueda
+        const inputRect = input.getBoundingClientRect();
+        const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+        
+        // Calcular la posición deseada: campo en la parte superior con un pequeño margen
+        const targetScroll = currentScroll + inputRect.top - 20; // 20px de margen superior
+        
+        // Hacer scroll suave a la posición calculada
+        window.scrollTo({
+          top: targetScroll,
+          behavior: "smooth"
+        });
+      }, 400); // Delay mayor para móviles donde el teclado tarda más en aparecer
+    }
+  });
+
   input.addEventListener("input", (event) => {
     const value = event.target.value.trim().toLowerCase();
     if (!allStops.length) {
